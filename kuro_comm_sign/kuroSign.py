@@ -1,24 +1,22 @@
 import datetime
 import json
+import logging
 import random
 import time
 from apscheduler.schedulers.background import BlockingScheduler
 
 import requests
 
-# 环境：python3, APScheduler 具体环境准备请百度
-
 # 用户token：app 抓包获取
 token = ""
 # app 抓包查看
-devCode = ""  
+devCode = ""
 # 用以角色签到
-uid = 10000000 # 角色uid, 填你自己的角色uid
-serverId = 1000  # 服务器id 星火服:1000  信标服: ?
+uid = 10000000  # 角色uid, 填你自己的角色uid
+serverId = 1000  # 服务器id 星火服:1000 信标服：？
 
 gameId = 2  # 游戏id 战双: 2 鸣潮? 3
 model = "Mi 13"  # 手机型号，可改可不改
-
 
 # 每日执行时间点, 在这基础上随机等待0-30分钟
 hour = 6  # 时
@@ -31,6 +29,10 @@ job_defaults = {
 }
 
 scheduler = BlockingScheduler(job_defaults=job_defaults)
+
+logging.basicConfig(filename='log.txt',
+                    format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO,
+                    encoding='utf-8')
 
 
 def post(url: str, data: dict):
@@ -136,14 +138,14 @@ def t_comm():
     time.sleep(random.randint(0, 59))
     while True:
         try:
-            print("执行用户签到，当前时间：", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3])
+            logging.info('执行用户签到')
             comm = sign_community()
-            print(comm)
+            logging.info(comm)
             if comm['msg'] == '请勿重复签到' or comm['success'] is True:
-                print('用户签到成功！当前时间：', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3])
+                logging.info('用户签到成功！')
                 break
         except:
-            print("无网络，执行用户签到失败，当前时间：", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3])
+            logging.error('执行用户签到失败！')
             time.sleep(120)
             continue
 
@@ -154,14 +156,14 @@ def t_role():
     time.sleep(random.randint(0, 59))
     while True:
         try:
-            print("执行角色签到，当前时间：", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3])
+            logging.info("执行角色签到")
             role = sign_role()
-            print(role)
+            logging.info(role)
             if role['msg'] == '请勿重复签到' or role['success'] is True:
-                print('角色签到成功！当前时间：', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3])
+                logging.info('角色签到成功！')
                 break
         except:
-            print("无网络，执行角色签到失败，当前时间：", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3])
+            logging.error("无网络，执行角色签到失败")
             time.sleep(120)
             continue
 
@@ -172,49 +174,52 @@ def t_like():
     count = 0
     while True:
         try:
-            print("执行点赞，当前时间：", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3])
+            logging.info("执行点赞")
             like_1 = like_post(1)
-            print(like_1)
-            time.sleep(10)
-            print("取消点赞，当前时间：", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3])
+            logging.info(like_1)
+            time.sleep(3)
+            logging.info("取消点赞")
             like_2 = like_post(2)
-            print(like_2)
+            logging.info(like_2)
             if like_1['success'] is True and like_2['success'] is True:
                 count = count + 1
 
             if count > num:
+                logging.info("点赞完毕")
                 break
 
         except:
-            print("无网络，执行点赞失败，当前时间：", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3])
+            logging.error("无网络，执行点赞失败！")
             time.sleep(120)
             continue
 
 
-@scheduler.scheduled_job('cron', hour=hour, minute=minute + 1, second=second)
+@scheduler.scheduled_job('cron', hour=hour, minute=minute, second=second)
 def t_share():
     while True:
         try:
-            print("执行分享，当前时间：", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3])
+            logging.info("执行分享!")
             s = share()
-            print(s)
+            logging.info(s)
             if s["success"] is True:
+                logging.info('分享成功！')
                 break
         except:
-            print("无网络，执行分享失败，当前时间：", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3])
+            logging.error("无网络，执行分享失败！")
             time.sleep(120)
             continue
 
 
-@scheduler.scheduled_job('cron', hour=hour, minute=minute - 1, second=second)
+@scheduler.scheduled_job('cron', hour=hour, minute=minute, second=second)
 def t_view():
     num = random.randint(4, 5)
     count = 0
     while True:
         try:
-            print("执行浏览帖子，当前时间：", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3])
+            logging.info("执行浏览帖子!")
             view = view_post()
-            print(view)
+            logging.info(view)
+            time.sleep(1)
             if view["success"] is True:
                 count = count + 1
 
@@ -222,7 +227,7 @@ def t_view():
                 break
 
         except:
-            print("无网络，执行浏览帖子失败，当前时间：", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3])
+            logging.error("无网络，执行浏览帖子失败!")
             time.sleep(120)
             continue
 
