@@ -203,7 +203,7 @@ def t_view_like():
                 break
 
         except:
-            logging.error("每日任务：浏览、点赞完成!")
+            logging.error("无网络，每日任务：浏览、点赞失败!")
             time.sleep(120)
             continue
 
