@@ -6,22 +6,23 @@ import time
 from apscheduler.schedulers.background import BlockingScheduler
 
 import requests
+import configparser
 
-# 用户token：app 抓包获取
-token = ""
-# app 抓包查看
-devCode = ""
-# 用以角色签到
-uid = 10000000  # 角色uid, 填你自己的角色uid
-serverId = 1000  # 服务器id 星火服:1000 信标服：？
+con = configparser.ConfigParser()
 
-gameId = 2  # 游戏id 战双: 2 鸣潮? 3
-model = "Mi 13"  # 手机型号，可改可不改
+con.read('config.ini', encoding='utf-8')
 
-# 每日执行时间点, 在这基础上随机等待0-30分钟
-hour = 6  # 时
-minute = 30  # 分
-second = 0  # 秒
+config = dict(con.items('section'))
+
+token = config["token"]
+devCode = config["devcode"]
+uid = config["uid"]
+serverId = config["serverid"]
+gameId = config["gameid"]
+model = config["model"]
+hour = config["hour"]
+minute = config["minute"]
+second = config["second"]
 
 job_defaults = {
     'coalesce': True,
@@ -72,11 +73,11 @@ def sign_community():
 
 
 # 浏览帖子
-def view_post():
+def view_post(postId):
     url = '/forum/getPostDetail'
     post_data = {
         "isOnlyPublisher": 0,
-        "postId": 1213879409601040384,
+        "postId": postId,
         "showOrderType": 2
     }
 
@@ -84,7 +85,7 @@ def view_post():
 
 
 # 点赞
-def like_post(operate: int):
+def like_post(bbs, operate: int):
     url = '/forum/like'
 
     post_data = {
@@ -94,12 +95,33 @@ def like_post(operate: int):
         "operateType": operate,
         "postCommentId": 0,
         "postCommentReplyId": 0,
-        "postId": 1213879409601040384,
-        "postType": 1,
-        "toUserId": 10015960,
+        "postId": bbs[0],
+        "postType": bbs[1],
+        "toUserId": bbs[2],
     }
 
     return post(url, data=post_data)
+
+
+# 获取帖子列表
+def get_post_list():
+    url = '/forum/list'
+    post_data = {
+        "forumId": 2,
+        "gameId": 2,
+        "pageIndex": 1,
+        "pageSize": 20,
+        "searchType": 3,
+        "timeType": 0,
+        "topicId": 0,
+    }
+
+    post_list = []
+
+    for p in post(url, post_data)["data"]["postList"]:
+        post_list.append((p["postId"], p["postType"], p["userId"]))
+
+    return post_list
 
 
 # 角色签到
@@ -134,13 +156,10 @@ def share():
 
 @scheduler.scheduled_job('cron', hour=hour, minute=minute, second=second)
 def t_comm():
-    time.sleep(random.randint(0, 30) * 60)
-    time.sleep(random.randint(0, 59))
     while True:
         try:
-            logging.info('执行用户签到')
+            logging.info('执行用户签到!')
             comm = sign_community()
-            logging.info(comm)
             if comm['msg'] == '请勿重复签到' or comm['success'] is True:
                 logging.info('用户签到成功！')
                 break
@@ -152,13 +171,10 @@ def t_comm():
 
 @scheduler.scheduled_job('cron', hour=hour, minute=minute, second=second)
 def t_role():
-    time.sleep(random.randint(0, 30) * 60)
-    time.sleep(random.randint(0, 59))
     while True:
         try:
-            logging.info("执行角色签到")
+            logging.info("执行角色签到!")
             role = sign_role()
-            logging.info(role)
             if role['msg'] == '请勿重复签到' or role['success'] is True:
                 logging.info('角色签到成功！')
                 break
@@ -169,27 +185,25 @@ def t_role():
 
 
 @scheduler.scheduled_job('cron', hour=hour, minute=minute, second=second)
-def t_like():
-    num = random.randint(6, 9)
+def t_view_like():
     count = 0
     while True:
         try:
-            logging.info("执行点赞")
-            like_1 = like_post(1)
-            logging.info(like_1)
-            time.sleep(3)
-            logging.info("取消点赞")
-            like_2 = like_post(2)
-            logging.info(like_2)
-            if like_1['success'] is True and like_2['success'] is True:
-                count = count + 1
+            for bbs in get_post_list():
+                view = view_post(bbs[0])
+                time.sleep(2)
+                like_1 = like_post(bbs, 1)
+                time.sleep(3)
+                like_2 = like_post(bbs, 2)
+                if view['success'] is True and like_1["success"] is True and like_2['success'] is True:
+                    count = count + 1
 
-            if count > num:
-                logging.info("点赞完毕")
+            if count >= 10:
+                logging.info('每日任务：浏览、点赞完成！')
                 break
 
         except:
-            logging.error("无网络，执行点赞失败！")
+            logging.error("每日任务：浏览、点赞完成!")
             time.sleep(120)
             continue
 
@@ -200,34 +214,11 @@ def t_share():
         try:
             logging.info("执行分享!")
             s = share()
-            logging.info(s)
             if s["success"] is True:
                 logging.info('分享成功！')
                 break
         except:
             logging.error("无网络，执行分享失败！")
-            time.sleep(120)
-            continue
-
-
-@scheduler.scheduled_job('cron', hour=hour, minute=minute, second=second)
-def t_view():
-    num = random.randint(4, 5)
-    count = 0
-    while True:
-        try:
-            logging.info("执行浏览帖子!")
-            view = view_post()
-            logging.info(view)
-            time.sleep(1)
-            if view["success"] is True:
-                count = count + 1
-
-            if count > num:
-                break
-
-        except:
-            logging.error("无网络，执行浏览帖子失败!")
             time.sleep(120)
             continue
 
