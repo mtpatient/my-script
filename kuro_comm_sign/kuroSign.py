@@ -156,6 +156,7 @@ def share():
 
 @scheduler.scheduled_job('cron', hour=hour, minute=minute, second=second)
 def t_comm():
+    time.sleep(random.randint(1, 3) * 60 + random.randint(0, 59))
     while True:
         try:
             logging.info('执行用户签到!')
@@ -163,14 +164,18 @@ def t_comm():
             if comm['msg'] == '请勿重复签到' or comm['success'] is True:
                 logging.info('用户签到成功！')
                 break
+            else:
+                logging.error(comm)
+                time.sleep(120)
         except:
             logging.error('执行用户签到失败！')
-            time.sleep(120)
+            time.sleep(600)
             continue
 
 
 @scheduler.scheduled_job('cron', hour=hour, minute=minute, second=second)
 def t_role():
+    time.sleep(random.randint(1, 3) * 60 + random.randint(0, 59))
     while True:
         try:
             logging.info("执行角色签到!")
@@ -178,16 +183,19 @@ def t_role():
             if role['msg'] == '请勿重复签到' or role['success'] is True:
                 logging.info('角色签到成功！')
                 break
+            else:
+                logging.error(role)
+                time.sleep(120)
         except:
             logging.error("无网络，执行角色签到失败")
-            time.sleep(120)
+            time.sleep(600)
             continue
 
 
 @scheduler.scheduled_job('cron', hour=hour, minute=minute, second=second)
 def t_view_like():
-    count = 0
     while True:
+        count = 0
         try:
             for bbs in get_post_list():
                 view = view_post(bbs[0])
@@ -198,18 +206,22 @@ def t_view_like():
                 if view['success'] is True and like_1["success"] is True and like_2['success'] is True:
                     count = count + 1
 
-            if count >= 10:
+            if count >= 7:
                 logging.info('每日任务：浏览、点赞完成！')
                 break
+            else:
+                logging.error(like_1, like_2)
+                time.sleep(120)
 
         except:
             logging.error("无网络，每日任务：浏览、点赞失败!")
-            time.sleep(120)
+            time.sleep(600)
             continue
 
 
 @scheduler.scheduled_job('cron', hour=hour, minute=minute, second=second)
 def t_share():
+    time.sleep(random.randint(1, 3) * 60 + random.randint(0, 59))
     while True:
         try:
             logging.info("执行分享!")
@@ -217,9 +229,12 @@ def t_share():
             if s["success"] is True:
                 logging.info('分享成功！')
                 break
+            else:
+                logging.error(s)
+                time.sleep(120)
         except:
             logging.error("无网络，执行分享失败！")
-            time.sleep(120)
+            time.sleep(600)
             continue
 
 
