@@ -154,6 +154,24 @@ def share():
     return post(url, post_data)
 
 
+@scheduler.scheduled_job('cron', hour=2, minute=0, second=0)
+def read_config():
+    con.read('config.ini', encoding='utf-8')
+
+    global config, token, devCode, uid, serverId, gameId, model, hour, minute, second
+    config = dict(con.items('section'))
+
+    token = config["token"]
+    devCode = config["devcode"]
+    uid = config["uid"]
+    serverId = config["serverid"]
+    gameId = config["gameid"]
+    model = config["model"]
+    hour = config["hour"]
+    minute = config["minute"]
+    second = config["second"]
+
+
 @scheduler.scheduled_job('cron', hour=hour, minute=minute, second=second)
 def t_comm():
     time.sleep(random.randint(1, 3) * 60 + random.randint(0, 59))
